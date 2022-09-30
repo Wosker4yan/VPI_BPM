@@ -26,18 +26,18 @@ def normalize(vec):
     return norm
 
 
-width = 0.8
+width = 0.75
 
 sub_mat = Dielectric(1.45, color='cyan')
 core_mat = Dielectric(3.4, color='teal')
-core = Layer(core_mat, h=0.8, rot='90 deg')
+core = Layer(core_mat, h=width, rot='90 deg')
 wg2 = CrossSection(sub_mat, core)
 wg2.plot()
 plt.show()
 
 #TODO
 #LATER
-grid_size = 8000
+grid_size = 5000
 
 # for m in wg2.mode.values():
 #     m.E.real.plot(contour=False, aspect='equal')
@@ -75,8 +75,8 @@ mode = Ey.m
 
 
 #find pick postion and shift the mode towards that positon
-x0 = np.linspace(-1* um, 1* um, grid_size)
-z0 = np.linspace(0 * um, 15 * um, grid_size)
+x0 = np.linspace(-4* um, 4* um, grid_size)
+z0 = np.linspace(0 * um, 30 * um, grid_size)
 wavelength = 1.55 * um
 
 
@@ -124,14 +124,52 @@ t0.draw(kind='intensity',
         )
 plt.show()
 
+amp_prof1 = t0.profile_longitudinal(kind='intensity',
+                                  x0=3*um,
+                                  logarithm=False,
+                                  draw=False,
+                                  filename='')
+
+plt.plot(z0,amp_prof1)
+plt.show()
+
 amp_prof = t0.profile_longitudinal(kind='intensity',
-                                  x0=0*um,
+                                  x0=-3*um,
                                   logarithm=False,
                                   draw=False,
                                   filename='')
 
 plt.plot(z0,amp_prof)
 plt.show()
+
+
+amp_prof = t0.profile_transversal(kind='intensity',
+                                  z0=25*um,
+                                  logarithm=False,
+                                  draw=False,
+                                  filename='')
+
+plt.plot(x0,amp_prof)
+plt.title('Output Profile')
+plt.ylabel('Intensity')
+plt.tight_layout()
+plt.xlabel('um')
+plt.show()
+
+
+
+amp_prof = t0.profile_transversal(kind='intensity',
+                                  z0=1*um,
+                                  logarithm=False,
+                                  draw=False,
+                                  filename='')
+
+plt.plot(x0,amp_prof)
+plt.title('Input Profile')
+plt.ylabel('Intensity')
+plt.xlabel('um')
+plt.show()
+
 
 #TODO
 #first simulating a simple waveguide
@@ -143,11 +181,10 @@ plt.show()
 #extracting neff from device designer
 
 
-# from scipy.fft import fft, fftfreq
-# fft_amp = fft(amp_prof)
-# plt.plot(z0,fft_amp)
-# plt.xlim(-1.10)
-# plt.show()
+from scipy.fft import fft, fftfreq
+fft_amp = fft(amp_prof1)
+plt.plot(z0,fft_amp)
+plt.show()
 #
 # import scipy.signal
 #
