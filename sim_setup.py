@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 Created on T Sep 30 11:55 2022
-
 Calculating the xs sections and polarizations for the future simulations
 Functions to calculate overlap
 Normalizing
 Getting the complex fields
-
-
 @author: Vahram
 """
 
@@ -30,7 +27,6 @@ def blockPrint():
 
 def norm(field, x):
     """Normalization of a field.
-
     Normalizing the field
     Args:
         field (list or array): Input field.
@@ -47,7 +43,6 @@ def norm(field, x):
 
 def nearest(vector, number):
     """Function from diffractio module to be used alongside with the profile
-
     Args:
         vector (list): vector
         number (float): number
@@ -67,7 +62,6 @@ def nearest(vector, number):
 
 def profile(field, z, z0=0 * um):
     """Extracts the profile of the field at a desired location
-
     Args:
         field (array): Complex field
         z (vector): Direction  of propagation
@@ -99,7 +93,6 @@ def normalize(vec):
 
 def overlap(field_1, field_2, x):
     """Overlap between two fields.
-
     Args:
         field_1 (list or array): Input field 1.
         field_2 (list or array): Input field 2.
@@ -115,7 +108,7 @@ class VPI_BPM:
 
     def __init__(
             self,
-            grid_size=2000,
+            grid_size=8000,
             beam_waist=1,
             core_index=3.4,
             substrate_index=1.45,
@@ -132,7 +125,6 @@ class VPI_BPM:
     ):
 
         """Initializes the Nazca BPM class.
-
         Args:
             grid_size (int): number of points for running the BPM simulation
             beam_waist (float): size of the beam waist launched into the structure
@@ -147,7 +139,6 @@ class VPI_BPM:
             mode (int): select modes of different orders
             plotting (bool): Set true/false for plotting.
             sim_mode (string):select for Beam propagation method or Wave propagation method
-
         Returns:
             None
         """
@@ -193,11 +184,9 @@ class VPI_BPM:
     ):
 
         """Get width from pin.
-
         Args:
             cell (netlist): Cell generated from Nazca
             pin (string): selected pin
-
         Returns:
            (float) width of the selected pin
         """
@@ -210,37 +199,12 @@ class VPI_BPM:
 
         return cell.pin[pin].width
 
-    def get_offset_x_y(self,
-            cell=None,
-            offset_factor=1):
-
-        """Function to return the offset y of the polygon for matching the mode into the grid
-        Args:
-            cell (netlist.Cell): structure generated with nazca
-            offset_factor (float): offset value for the grid dimension
-
-        Returns (float):
-            x,  y: offsets of the polygons of the mask
-        """
-
-        if cell is None:
-            cell = self.cell
-
-        diffractio = Masktopolygon()
-        polygons = diffractio.get_polygons(cell)
-        polygons = polygons['1/0/None']
-        width = self.get_ic_width(pin=None)
-        x, y = max(max(polygons))
-        offset =y+offset_factor*width
-        return x,offset
-
-
     def cell2image(
             self,
             cell=None,
             filename=None,
-            grid_size=None
-
+            grid_size=None,
+            offset=2.5
     ):
         """Converting the image to cell. Saves the image on the current directory.
         Args:
@@ -248,7 +212,6 @@ class VPI_BPM:
             filename (string): name of the image saved in the same directory that the code is run
             grid_size (int): number of points for running the BPM simulation
             offset (float): offset value for the grid dimension
-
         Returns (float):
             grid_offset_z,  grid_offset_x: grid sizes and dimensions for later simulations
         """
@@ -269,10 +232,9 @@ class VPI_BPM:
             plt.fill(xs, ys, 'k')
 
         x, y = max(max(polygons))
-        offset = self.get_ic_width(pin=None)
 
         grid_offset_z = x
-        grid_offset_x = y + 2*offset * um
+        grid_offset_x = y + offset * um
 
         plt.ylim(-grid_offset_x, grid_offset_x)
         plt.xlim(0, grid_offset_z)
@@ -289,7 +251,7 @@ class VPI_BPM:
 
         plt.close()
 
-
+        return grid_offset_x, grid_offset_z
 
     def mode_and_neff(
             self,
@@ -298,13 +260,12 @@ class VPI_BPM:
             polarization=None,
             mode_order=0,
             grid_size=None,
-            number_of_modes = 1,
-            wavelength = None,
+            number_of_modes=1,
+            wavelength=None,
             input_pin='a0'
     ):
 
         """Calculating the slab index and mode profile from VPI devices designer
-
         Args:
             core_index (float): refractive index of the core ,
             substrate_index (float): substrate refractive index,
@@ -316,8 +277,6 @@ class VPI_BPM:
             number_of_modes (int): select the number of modes to calculate
         """
 
-
-
         if substrate_index is None:
             filename = self.substrate_index
         if core_index is None:
@@ -326,22 +285,20 @@ class VPI_BPM:
             polarization = self.polarization
         if grid_size is None:
             grid_size = self.grid_size
-
         if input_pin is None:
             input_pin = self.input_pin
         if wavelength is None:
             wavelength = self.wavelength
 
         width = self.get_ic_width(pin=input_pin)
-        x, offset= self.get_offset_x_y()
 
         sub_mat = Dielectric(substrate_index, color='cyan')
         core_mat = Dielectric(core_index, color='teal')
         core = Layer(core_mat, h=width, rot='90 deg')
         waveguide = CrossSection(sub_mat, core)
-        x = np.linspace(-offset, offset, grid_size)
-
-        if polarization=='TM':
+        x = np.linspace(-2*width, 2*width, grid_size)
+        wavelength = wavelength*1e-6
+        if polarization == 'TM':
             waveguide.mesh.box = waveguide.box.expand(5)
             waveguide.mesh.update(dx=1 * units.nm)
             waveguide.calc(str(wavelength) + ' um', nmodes=number_of_modes, pol='TM')
@@ -351,7 +308,7 @@ class VPI_BPM:
             return E, effective_index, x
 
 
-        elif polarization=='TE':
+        elif polarization == 'TE':
             waveguide.mesh.box = waveguide.box.expand(5)
             waveguide.mesh.update(dx=1 * units.nm)
             waveguide.calc(str(wavelength) + ' um', nmodes=number_of_modes, pol='TE')
@@ -364,20 +321,16 @@ class VPI_BPM:
         else:
             print('POLARIZATION TYPE IS NOT SELECTED')
 
-
-
     def plot_mask(
             self,
             cell=None
     ):
 
         """Function for plotting the mask that is going to be simulated
-
         Args:
             cell (netlist.Cell): structure generated with nazca
         Plotting the mask.
             use for visualizing the structure that is going to be simulated.
-
         Returns:
               Plotting
         """
@@ -399,7 +352,6 @@ class VPI_BPM:
         plt.tight_layout()
         plt.show()
 
-
     def run_bpm_mode(self,
                      cell=None,
                      pin=None,
@@ -419,7 +371,6 @@ class VPI_BPM:
 
         """
         Run BPM with gaussian beam
-
         Args:
              cell (netlist.Cell): structure generated with nazca
              pin (string): Pin name from nazca
@@ -435,7 +386,6 @@ class VPI_BPM:
              x_location (float): location of the beam in X direction
              input_pin (str): input pin
              output_pin (str): output pin
-
         Returns (float):
             transmission, coefficient, overlap coefficient with the mode profile
         """
@@ -460,26 +410,28 @@ class VPI_BPM:
         width = self.get_ic_width(cell=cell, pin=pin)
         width_2 = self.get_ic_width(cell=cell, pin='b0')
 
-        grid_offset_z, grid_offset_x = self.get_offset_x_y(
-            cell=cell
+        grid_offset_x, grid_offset_z = self.cell2image(
+            cell=cell,
+            grid_size=grid_size,
+            filename=filename
         )
 
         plt.close()
 
-        E, neff, x = self.mode_and_neff(
+        E, neff, x = self.mode_and_neff(polarization='TE',
             mode_order=0,
             input_pin=input_pin
         )
 
         ref_background = substrate_index
-        E = normalize(E)
-        x0 = np.linspace(-grid_offset_x, grid_offset_x, grid_size)
+
+        x0 = np.linspace(-grid_offset_x, grid_offset_x, grid_size)  # minus plus !!!
         z0 = np.linspace(0, grid_offset_z, grid_size)
-        u0 = Scalar_source_X(x=x0, wavelength=wavelength*um)
-        u0.user_defined_mode(x0, E, angle, neff, x_location)
+        u0 = Scalar_source_X(x=x0, wavelength=wavelength)
+        u0.user_defined_mode(x, E, angle, neff, x_location)
 
 
-        t0 = Scalar_mask_XZ(x=x0, z=z0, wavelength=wavelength*um)
+        t0 = Scalar_mask_XZ(x=x0, z=z0, wavelength=wavelength)
 
         t0.image(filename=filename,
                  n_max=neff,
@@ -488,7 +440,7 @@ class VPI_BPM:
                  invert=False)
 
         t0.incident_field(u0)
-
+        E = normalize(E)
         if sim_mode == 'BPM':
             t0.BPM(verbose=False)
         else:
@@ -499,10 +451,9 @@ class VPI_BPM:
                     normalize=True,
                     logarithm=False,
                     draw_borders=True,
+                    colormap_kind='viridis',
                     min_incr=0.05,
-                    colormap_kind = 'viridis'
                     )
-
             plt.title('Structure and refractive index contrast')
             beam_waist_vline = width / grid_offset_x
 
@@ -511,7 +462,6 @@ class VPI_BPM:
             y_mid = 0.5
 
             cbar = plt.colorbar()
-            plt.clim(0,1)
             cbar.set_label('Normalized Intensity', rotation=270, size=10, labelpad=10)
 
             plt.axvline(0,
@@ -567,157 +517,3 @@ class VPI_BPM:
         transmission = abs(sab) ** 2
 
         return amp_prof_input,  amp_prof_output,  x0, transmission
-
-    def visualize(self,
-                  plotting=None,
-                  cell=None,
-                  grid_size=None,
-                  filename=None,
-                  substrate_index=None,
-                  wavelength=None,
-                  sim_mode=None,
-                  input_pin =None,
-                  monitor_location=0.0,
-                  angle=0,
-                  x_location=0
-                  ):
-
-        """
-        Visualizing the field profile and the index profile
-        Args:
-            plotting (bool): Select True for plotting
-
-            cell (netlist.Cell): structure generated with nazca
-            grid_size (int): number of points for running the BPM simulation
-            filename (string): name of the image saved in the same directory
-            substrate_index: refractive index of the substrate
-            wavelength (float): wavelength of the light
-            sim_mode (str): 'BPM' or 'WPM' for simulation mode
-            monitor_location (float): position of the monitor for taking the field
-            angle (float): Angle for the mode profile
-            x_location (float): Location of the mode
-
-        Returns:
-            Transmission sweep, grid size
-        """
-
-        if plotting is None:
-            plotting = self.plotting
-        if grid_size is None:
-            grid_size = self.grid_size
-        if filename is None:
-            filename = self.filename
-        if cell is None:
-            cell = self.cell
-        if substrate_index is None:
-            substrate_index = self.substrate_index
-        if sim_mode is None:
-            sim_mode = self.sim_mode
-        if wavelength is None:
-            wavelength = self.wavelength
-        if input_pin is None:
-            input_pin = self.pin
-
-        self.get_ic_width()
-
-        grid_offset_z, offset = self.get_offset_x_y(
-            cell=cell,
-        )
-
-        plt.close()
-
-        E, neff, x = self.mode_and_neff(
-            mode_order=0,
-            input_pin=input_pin
-        )
-
-        ref_background = substrate_index
-
-        x0 = np.linspace(-offset, offset, grid_size)
-        z0 = np.linspace(0 * um, grid_offset_z, grid_size)
-
-        u0 = Scalar_source_X(x=x0, wavelength=wavelength*um)
-        u0.user_defined_mode(x, E, angle, neff, x_location)
-        t0 = Scalar_mask_XZ(x=x0, z=z0, wavelength=wavelength*um)
-
-        t0.image(filename=filename,
-                 n_max=neff,
-                 n_min=ref_background,
-                 angle=0 * degrees,
-                 invert=False)
-
-        t0.incident_field(u0)
-
-        if sim_mode == 'BPM':
-            t0.BPM(verbose=False)
-        else:
-            t0.WPM(verbose=False)
-
-        amp_prof = t0.profile_transversal(kind='amplitude',
-                                          z0=monitor_location,
-                                          logarithm=False,
-                                          draw=False,
-                                          filename='')
-
-        index_profile = t0.profile_transversal(kind='refraction_index',
-                                               z0=monitor_location,
-                                               logarithm=False,
-                                               draw=False,
-                                               filename='')
-        if plotting:
-            fig, ax1 = plt.subplots()
-
-            color1 = 'tab:grey'
-            color2 = 'tab:green'
-
-            ax1.set_xlabel('x [$\mu$m]')
-            ax1.set_ylabel('Index Profile', color='grey')
-            ax1.plot(x0, index_profile, color=color1)
-            ax1.set_title(f'z={monitor_location} $\mu$m')
-            ax1.tick_params(axis='y', labelcolor='#78f213')
-            ax1.set_facecolor("#000000")
-
-            ax2 = ax1.twinx()
-            ax2.set_ylabel('Amplitude [norm]', color='#78f213')
-            ax2.tick_params(axis='y', labelcolor='#78f213')
-            ax2.plot(x0, amp_prof, color=color2)
-            ax2.set_facecolor("#000000")
-
-            ax1.grid('both', color='#292929', linestyle='--', linewidth=0.5)
-            plt.tight_layout()
-            plt.show()
-
-        return amp_prof, index_profile
-
-    def plot_waveguide(self,
-                       substrate_index=None,
-                       core_index=None,
-                       pin=None
-                       ):
-
-
-        """Function for plotting the waveguide
-
-        Args:
-            core_index (float): refractive index of the cladding
-            substrate_index (float): refractive index of the substrate
-            pin (str): input pin of the waveguide.
-        """
-        if substrate_index is None:
-            filename = self.substrate_index
-        if core_index is None:
-            core_index = self.core_index
-        if pin is None:
-            pin = self.pin
-
-        width = self.get_ic_width(cell=None, pin=pin)
-
-        sub_mat = Dielectric(substrate_index, color='cyan')
-        core_mat = Dielectric(core_index, color='teal')
-        core = Layer(core_mat, h=width, rot='90 deg')
-        waveguide = CrossSection(sub_mat, core)
-
-        waveguide.plot()
-        plt.title('The widht of the waveguide is '+str(width) +'$\mu$m')
-        plt.tight_layout()
-        plt.show()
