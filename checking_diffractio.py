@@ -6,6 +6,18 @@ import matplotlib.pyplot as plt
 import math
 from diffractio.scalar_masks_XZ import Scalar_mask_XZ
 from diffractio.scalar_sources_X import Scalar_source_X
+def norm(field, x):
+    """Normalization of a field.
+
+    Normalizing the field
+    Args:
+        field (list or array): Input field.
+        x (int): Grid difference (delta) x0 parameter.
+    Returns:
+        normalized field (float)
+    """
+
+    return np.sqrt((sum(field * np.conjugate(field)))) * (x[1] - x[0])
 
 
 def normalize(vec):
@@ -21,6 +33,19 @@ def normalize(vec):
 
     return norm
 
+def overlap(field_1, field_2, x):
+    """Overlap between two fields.
+
+    Args:
+        field_1 (list or array): Input field 1.
+        field_2 (list or array): Input field 2.
+        x (list or array): Grid difference (delta) x0 parameter.
+    Returns:
+        overlap between two fields (float)
+    """
+    return sum(field_1 * np.conjugate(field_2) * (x[1] - x[0]))
+
+
 
 if __name__ == '__main__':
     width = 0.45
@@ -33,7 +58,7 @@ if __name__ == '__main__':
     filename = 'mask.png'
     polarization = 'TE'
     ic = diffractio.get_default_ic(width=width)
-    wg_length = 20
+    wg_length = 50
     T = []
 
     with nd.Cell(name='cell ') as _cell:
@@ -41,7 +66,7 @@ if __name__ == '__main__':
         el.raise_pins(['a0', 'b0'], ['a0', 'b0'])
 
     sim = VPI_BPM(
-        grid_size = 5000,
+        grid_size = 7000,
         beam_waist=1,
         core_index=core_index,
         substrate_index=substrate_index,
@@ -58,5 +83,11 @@ if __name__ == '__main__':
     )
 
 
-    amp_prof_input, amp_prof_output, x0, transmission = sim.run_bpm_mode(
-        output_monitor_location=wg_length, angle=0, plotting=True)
+    amp_prof_input, amp_prof_output, x0, transmission = sim.run_bpm_mode(sim_mode='BPM',
+        output_monitor_location=10, angle=0, plotting=True)
+
+
+
+    sim.visualize(sim_mode = 'BPM',monitor_location=0)
+    x, z = sim.cell2image(save=True)
+    width = sim.get_ic_width()
