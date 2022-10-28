@@ -22,8 +22,6 @@ from masktopolygon import Masktopolygon
 import math
 import sys, os
 
-def blockPrint():
-    sys.stdout = open(os.devnull, 'w')
 
 def norm(field, x):
     """Normalization of a field.
@@ -36,9 +34,6 @@ def norm(field, x):
     """
 
     return np.sqrt((sum(field * np.conjugate(field)))) * (x[1] - x[0])
-
-
-
 
 
 def nearest(vector, number):
@@ -83,10 +78,8 @@ def normalize(vec):
     Returns:
         norm (Array): Normalized field
     """
-
     vec = np.asarray(vec)
     norm = np.squeeze(vec / vec.max())
-
 
     return norm
 
@@ -108,13 +101,14 @@ class VPI_BPM:
 
     def __init__(
             self,
-            grid_size=8000,
+            grid_size=4000,
             beam_waist=1,
             core_index=3.4,
             substrate_index=1.45,
             image=None,
             wavelength=1.55,
-            polarization='TE',
+            thickness=0.25,
+            polarization='QTE',
             filename='./mask.png',
             cell=None,
             pin='b0',
@@ -132,6 +126,7 @@ class VPI_BPM:
             substrate_index (float): refractive index of the substrate
             image (float): mask that is given
             wavelength (float): wavelength of the light
+            thickness (float): thickness of the waveguide
             polarization (string): polarization for the mode calculation
             filename (string): name of the image saved in the same directory that the code is run
             cell (netlist.Cell): structure generated with nazca
@@ -144,6 +139,7 @@ class VPI_BPM:
         """
 
         self.grid_size = grid_size
+        self.thickness = thickness
         self.beam_waist = beam_waist
         self.core_index = core_index
         self.image = image
@@ -256,6 +252,49 @@ class VPI_BPM:
 
         return grid_offset_x, grid_offset_z
 
+
+    def get_slab_index(self,
+                       thickness=None,
+                       core_index=None,
+                       substrate_index=None,
+                       polarization=None,
+                       number_of_modes=0
+                       ):
+        """Calculating the slab index with Marco's multilayer code for mode profile calculations.
+
+        Args:
+            thickness (float) : thickness of the input waveguide
+            core_index (float): refractive index of the core ,
+            clad_index (float): cladding refractive index,
+            polarization (string): polarization of light (TE, TM),
+            number_of_modes (int): order of the fundamental mode,
+            slab index (float): refractive index of the slab profile
+
+        Returns (float):
+            slab_index for later use in BPM simulation
+        """
+        if thickness is None:
+            thickness = self.thickness
+        if core_index is None:
+            core_index = self.core_index
+        if substrate_index is None:
+            substrate_index = self.substrate_index
+        if polarization is None:
+            polarization = self.polarization
+
+        sub_mat = Dielectric(core_index, color='cyan')
+        core_mat = Dielectric(substrate_index, color='teal')
+        core = Layer(core_mat, h=thickness, rot='0 deg')
+
+        waveguide = CrossSection(sub_mat, core)
+
+        waveguide.mesh.box = waveguide.box.expand(5)
+        waveguide.mesh.update(dy=1 * units.nm)
+        waveguide.calc(str(self.wavelength) + ' um', nmodes=1, pol=polarization)
+        slab_index = waveguide.mode[number_of_modes].neff()
+
+        return slab_index
+
     def mode_and_neff(
             self,
             cell=None,
@@ -283,6 +322,7 @@ class VPI_BPM:
             grid_size (int): size of the grid for the simulation, number of points in multilayer
             number_of_modes (int): select the number of modes to calculate
         """
+
         if filename is None:
             filename = self.filename
         if cell is None:
@@ -308,15 +348,18 @@ class VPI_BPM:
             filename=filename,
             save = False
         )
-
+        
+        
+        
+        slab_index = self.get_slab_index()
 
         sub_mat = Dielectric(substrate_index, color='cyan')
-        core_mat = Dielectric(core_index, color='teal')
+        core_mat = Dielectric(slab_index, color='teal')
         core = Layer(core_mat, h=width, rot='90 deg')
 
         waveguide = CrossSection(sub_mat, core)
         x = np.linspace(-grid_offset_x, grid_offset_x, grid_size)
-        wavelength = wavelength*1e-6
+
         if polarization == 'TM':
             waveguide.mesh.box = waveguide.box.expand(5)
             waveguide.mesh.update(dx=1 * units.nm)
@@ -442,11 +485,15 @@ class VPI_BPM:
         E, neff, x = self.mode_and_neff(mode_order=0,input_pin=input_pin)
 
         ref_background = substrate_index
-        E = normalize(E)
+        E_norm = normalize(E)
+
+
         x0 = np.linspace(-grid_offset_x, grid_offset_x, grid_size)  # minus plus !!!
         z0 = np.linspace(0, grid_offset_z, grid_size)
+
         u0 = Scalar_source_X(x=x0, wavelength=wavelength)
-        u0.user_defined_mode(x, E, angle, neff, x_location)
+
+        u0.user_defined_mode(x0, E_norm, angle, neff, x_location)
 
 
         t0 = Scalar_mask_XZ(x=x0, z=z0, wavelength=wavelength)
@@ -459,9 +506,12 @@ class VPI_BPM:
 
         t0.incident_field(u0)
         if sim_mode == 'BPM':
-            t0.BPM(verbose=False)
+            print('Running BPM\n')
+            t0.BPM(verbose=True)
+
         else:
-            t0.WPM(verbose=False)
+            print('Running WPM\n')
+            t0.WPM(verbose=True)
 
         if plotting:
             t0.draw(kind='intensity',
@@ -482,7 +532,6 @@ class VPI_BPM:
             #plt.clim(0, 1)
 
             cbar.set_label('Normalized Intensity', rotation=270, size=10, labelpad=10)
-
 
 
             plt.axvline(0,
@@ -513,11 +562,6 @@ class VPI_BPM:
             plt.tight_layout()
             plt.show()
 
-        field = t0.u
-        z = t0.z
-
-        amp_prof_input_complex = profile(field, z, z0=input_monitor_location)
-        amp_prof_output_complex = profile(field, z, z0=output_monitor_location)
 
         amp_prof_input = t0.profile_transversal(kind='intensity',
                                           z0=input_monitor_location,
@@ -550,14 +594,12 @@ class VPI_BPM:
 
         sab = overlap2 / overlap1
         transmission = abs(sab) ** 2
-
-
         # norm_E = norm(E, x0)
         #
         # transmission = np.abs(overlap(norm_amp_input, norm_E, x0)) / np.abs(overlap(norm_amp_output, norm_E, x0))
 
 
-        return amp_prof_input,  amp_prof_output,  x0, transmission
+        return amp_prof_input,  amp_prof_output,  x0, transmission,E
 
 
     def visualize(self,
@@ -629,7 +671,7 @@ class VPI_BPM:
         z0 = np.linspace(0 * um, grid_offset_z, grid_size)
 
         u0 = Scalar_source_X(x=x0, wavelength=wavelength*um)
-        u0.user_defined_mode(x, E, angle, neff, x_location)
+        u0.user_defined_mode(x0, E, angle, neff, x_location)
         t0 = Scalar_mask_XZ(x=x0, z=z0, wavelength=wavelength*um)
 
         t0.image(filename=filename,
@@ -679,7 +721,7 @@ class VPI_BPM:
             plt.tight_layout()
             plt.show()
 
-        return amp_prof, index_profile
+        #return amp_prof, index_profile
 
     def plot_waveguide(self,
                        substrate_index=None,
