@@ -29,7 +29,7 @@ if __name__ == '__main__':
     thickness = 0.8
     ic = diffractio.get_default_ic(width=width)
     grid_size = 600 #for wpm keep it small
-    sim_mode = 'WPM'
+
     T= []
     length_output = input_wg_length + length_input_taper + bb_length
     monitor_loc = length_output + output_wg_length + output_taper_length
@@ -63,7 +63,7 @@ if __name__ == '__main__':
         image=None,
         wavelength=1.55,
         thickness=0.25,
-        polarization='Te',
+        polarization='TE',
         filename='./mask.png',
         cell=_cell,
         pin='b0',
@@ -75,13 +75,12 @@ if __name__ == '__main__':
 
     sim.cell2image()
 
-    amp_prof_input, amp_prof_output, x0, transmission, E  = sim.run_bpm_mode(
+    amp_prof_input,  amp_prof_output,  x0, transmission,E  = sim.run_bpm_mode(
         input_pin='a0',
         output_pin = 'b0',
-        sim_mode=sim_mode,
         output_monitor_location=monitor_loc)
 
-    sim.visualize(plotting = True, monitor_location=monitor_loc, sim_mode=sim_mode)
+    sim.visualize(plotting = True, monitor_location=monitor_loc)
 
     # prof_input, prof_output, x0 = sim.get_complex_field(
     #     input_pin='a0',
