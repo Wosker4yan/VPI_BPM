@@ -415,6 +415,7 @@ class VPI_BPM:
         plt.show()
 
     def run_bpm_mode(self,
+
                      cell=None,
                      pin=None,
                      grid_size=None,
@@ -723,6 +724,8 @@ class VPI_BPM:
 
         #return amp_prof, index_profile
 
+
+
     def plot_waveguide(self,
                        substrate_index=None,
                        core_index=None,
@@ -754,3 +757,67 @@ class VPI_BPM:
         plt.title('The widht of the waveguide is '+str(width) +'$\mu$m')
         plt.tight_layout()
         plt.show()
+
+
+
+
+    def index_contour_plot(self,
+                           cell=None,
+                           grid_size=None,
+                           filename=None,
+                           substrate_index=None,
+                           wavelength=None
+                           ):
+
+        """Function to plot refractive index contour profile
+
+        Args:
+             cell (netlist.Cell): structure generated with nazca
+             grid_size (int): number of points for running the BPM simulation
+             filename (string): name of the image saved in the same directory that the code is run
+             substrate_index: refractive index of the cladding/substrate
+             wavelength (float): wavelength of the light
+
+        Returns (float):
+            Refractive index contour plot
+        """
+
+        if filename is None:
+            filename = self.filename
+        if grid_size is None:
+            grid_size = self.grid_size
+        if cell is None:
+            cell = self.cell
+        if substrate_index is None:
+            substrate_index = self.substrate_index
+        if wavelength is None:
+            wavelength = self.wavelength
+
+        grid_offset_x, grid_offset_z = self.cell2image(
+            cell=cell,
+            filename=filename
+        )
+
+        E, neff, x = self.mode_and_neff(
+            mode_order=0,
+            input_pin='a0'
+        )
+        ref_background = substrate_index
+
+        x0 = np.linspace(grid_offset_x, -grid_offset_x, grid_size)
+        z0 = np.linspace(0, grid_offset_z, grid_size)
+
+        t0 = Scalar_mask_XZ(x=x0, z=z0, wavelength=wavelength)
+
+        t0.image(filename=filename,
+                 n_max=neff,
+                 n_min=ref_background,
+                 angle=0 * degrees,
+                 invert=False)
+
+        plt.figure()
+        t0.draw_refraction_index(draw_borders=False, colormap_kind='viridis')
+        plt.colorbar(label="Refractive Index", orientation="vertical")
+        plt.tight_layout()
+        plt.show()
+
