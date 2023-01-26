@@ -19,7 +19,7 @@ def overlap(field_1, field_2, x):
     return sum(field_1 * np.conjugate(field_2) * (x[1] - x[0]))
 
 if __name__ == '__main__':
-    width =0.5
+    width =0.75
     diffractio = Masktopolygon()
     angle =0
     theta = 0
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     polarization = 'TE'
     ic = diffractio.get_default_ic(width=width)
     wg_length = np.linspace(5,100,25)
-    grid_sizes = [100, 500, 2000, 4000]
+    grid_sizes = [3000]
     T= []
 
     for i,grid in tqdm(enumerate(grid_sizes)):
@@ -50,7 +50,7 @@ if __name__ == '__main__':
                 image=None,
                 wavelength=1.55,
                 thickness=0.25,
-                polarization='TM',
+                polarization='TE',
                 filename='./mask.png',
                 cell=_cell,
                 pin='b0',
@@ -95,3 +95,40 @@ if __name__ == '__main__':
     fig.suptitle('Straight Waveguide')
     fig.tight_layout()
     fig.show()
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+#c = 0.1205
+#a = 0.7705
+#b = 0.001
+
+a = 0.0255
+b = 0.001
+c = 0.126
+
+#a = 0.527
+#b = 0.001
+#c = 0.677
+x = np.linspace(0, 3021, 57)
+y = (a * np.exp(b*x)) + c
+
+plt.plot(x, y, '-r')
+
+
+
+
+axes = plt.gca()
+
+plt.xlabel('gratings')
+plt.ylabel('FF')
+plt.title('FF vs grating number')
+
+plt.show()
+
+
+for i in y:
+    print(i)
+
+
+

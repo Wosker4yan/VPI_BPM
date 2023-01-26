@@ -13,8 +13,8 @@ if __name__ == '__main__':
     pitch_between_taper = 1.8
     length_input_taper = 50
     output_width = 2
-    bb_length = 16.172
-    width_bb = 5
+    bb_length =20 #16.172
+    width_bb = 6.7
     width1 = 0.8
     width =0.5
     output_taper_length = 50
@@ -87,3 +87,12 @@ if __name__ == '__main__':
     #     output_pin='b0',
     #     sim_mode = sim_mode,monitor_location=monitor_loc)
 
+import numpy as np
+x = np.linspace(500, 3000,6)
+ff = np.linspace(0.4,0.65,6)
+
+plt.plot(x, ff)
+plt.ylabel("Filling factor")
+plt.xlabel("GC teeth")
+plt.tight_layout()
+plt.show()

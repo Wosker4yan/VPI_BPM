@@ -1,20 +1,23 @@
 """
 Created on T Sep 30 12:01 2022
 
-Class to get the polygons from the mask
+Class to get the polygons from the VPI
+modified slightly by Vahram
+
+Reusing for VPI
 
 
-@author: Vahram
+@author: Marco
+BRIGHT PHOTONICS
 """
 
 import nazca as nd
 
-
 class Masktopolygon:
     def __init__(self, layer_dic=None, material_index=None):
         if layer_dic is None:
-            xs = nd.add_xsection('mask')
-            nd.add_layer2xsection('mask', 1)
+            xs = nd.add_xsection('VPI')
+            nd.add_layer2xsection('VPI', 1)
 
             layer_dic = {
                 1: 2.0,
@@ -22,8 +25,8 @@ class Masktopolygon:
         self.layer_dic = {nd.get_layer(lay): val for lay, val in layer_dic.items()}
 
     def get_default_ic(self, width=2, radius=20.0):
-        xs = nd.get_xsection('mask')
-        return nd.interconnects.Interconnect(xs='mask', width=width, radius=radius)
+        xs = nd.get_xsection('VPI')
+        return nd.interconnects.Interconnect(xs='VPI', width=width, radius=radius)
 
     def get_polygons(self, cell):
         polygon_dic = {lay: [] for lay in self.layer_dic}

@@ -23,6 +23,7 @@ import math
 import sys, os
 
 
+
 def norm(field, x):
     """Normalization of a field.
     Normalizing the field
@@ -34,6 +35,9 @@ def norm(field, x):
     """
 
     return np.sqrt((sum(field * np.conjugate(field)))) * (x[1] - x[0])
+
+
+
 
 
 def nearest(vector, number):
@@ -201,7 +205,7 @@ class VPI_BPM:
             filename=None,
             grid_size=None,
             save = True,
-            offset=2
+            offset=3
     ):
         """Converting the image to cell. Saves the image on the current directory.
         Args:
@@ -584,20 +588,17 @@ class VPI_BPM:
 
         #TODO
         #CHECK OVERLAP INTEGRALS
+
         norm_amp_input = norm(amp_prof_input, x0)
         norm_E = norm(E, x0)
 
         norm_amp_output = norm(amp_prof_output, x0)
 
-
         overlap1 = overlap(amp_prof_input, E, x0) / (norm_amp_input * norm_E)
         overlap2 = overlap(amp_prof_output, E, x0) / (norm_amp_output * norm_E)
 
         sab = overlap2 / overlap1
-        transmission = abs(sab) ** 2
-        # norm_E = norm(E, x0)
-        #
-        # transmission = np.abs(overlap(norm_amp_input, norm_E, x0)) / np.abs(overlap(norm_amp_output, norm_E, x0))
+        transmission = abs(sab)
 
 
         return amp_prof_input,  amp_prof_output,  x0, transmission,E
@@ -726,37 +727,7 @@ class VPI_BPM:
 
 
 
-    def plot_waveguide(self,
-                       substrate_index=None,
-                       core_index=None,
-                       pin=None
-                       ):
 
-
-        """Function for plotting the waveguide
-        Args:
-            core_index (float): refractive index of the cladding
-            substrate_index (float): refractive index of the substrate
-            pin (str): input pin of the waveguide.
-        """
-        if substrate_index is None:
-            filename = self.substrate_index
-        if core_index is None:
-            core_index = self.core_index
-        if pin is None:
-            pin = self.pin
-
-        width = self.get_ic_width(cell=None, pin=pin)
-
-        sub_mat = Dielectric(substrate_index, color='cyan')
-        core_mat = Dielectric(core_index, color='teal')
-        core = Layer(core_mat, h=width, rot='90 deg')
-        waveguide = CrossSection(sub_mat, core)
-
-        waveguide.plot()
-        plt.title('The widht of the waveguide is '+str(width) +'$\mu$m')
-        plt.tight_layout()
-        plt.show()
 
 
 

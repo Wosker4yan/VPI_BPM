@@ -5,7 +5,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-
+#TODO
+#add kvector diagram into the functionality of the main code
+#finish reflectance transmittance for the grating and also add it there.
 
 # function for semicircle
 def semicircle(r, h, k, down = False):

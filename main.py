@@ -70,9 +70,21 @@ plt.show()
 # plt.show()
 effective_index = wg2.mode[0].neff()
 mode = Ey.m
+plt.plot(x, mode)
+plt.show()
 
+sub_mat = Dielectric(3, color='cyan')
+air = Dielectric(1, color='white')
+core_mat = Dielectric(1.445, color='teal')
+core = Layer(core_mat, h=width, rot='0 deg')
 
-
+waveguide = CrossSection(sub_mat, core)
+waveguide.plot()
+plt.show()
+waveguide.mesh.box = waveguide.box.expand(5)
+waveguide.mesh.update(dy=1 * units.nm)
+waveguide.calc('1.55 um', nmodes=1, pol='TM')
+effective_index = waveguide.mode[0].neff()
 
 #find pick postion and shift the mode towards that positon
 x0 = np.linspace(-4* um, 4* um, grid_size)
@@ -193,3 +205,5 @@ plt.show()
 # filtered = scipy.signal.filtfilt(b, a, amp_prof)
 # plt.plot(z0, filtered)
 # plt.show()
+
+
