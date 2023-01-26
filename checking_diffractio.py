@@ -60,11 +60,3 @@ if __name__ == '__main__':
 
 
     sim.visualize(sim_mode = 'BPM',monitor_location=25)
-    x, z = sim.cell2image(save=True)
-    width = sim.get_ic_width()
-
-    sim.index_contour_plot()
-    x, eff, E = sim.mode_and_neff()
-    effective_index = sim.get_slab_index()
-    plt.plot(E, abs(x))
-    plt.show()

@@ -25,8 +25,8 @@ def normalize(vec):
 
 
 
-period = 485e-9
-number_grating = 200
+period = 265e-9
+number_grating = 4
 cladding = HalfPlane(SiO2)
 etch = 0.3
 wavelengths =np.linspace(1.54, 1.55, 50)
@@ -40,8 +40,8 @@ for wavelength in wavelengths:
 
     wg = CrossSection([Air, cladding, slab])
     wg.name = 'Waveguide Cross section'
-    # wg.plot()
-    # plt.show()
+    wg.plot()
+    plt.show()
 
 
     wg.mesh.box = Box2D((-1, -0.3), (1, 0.8))
@@ -66,8 +66,8 @@ for wavelength in wavelengths:
 
     wg = CrossSection([Air, cladding, slab])
     wg.name = 'Waveguide Cross section'
-    # wg.plot()
-    # plt.show()
+    wg.plot()
+    plt.show()
 
 
     wg.mesh.box = Box2D((-1, -0.3), (1, 0.8))

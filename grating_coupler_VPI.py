@@ -8,9 +8,9 @@ from tqdm import tqdm
 import nazca.geometries as geom
 
 if __name__ == '__main__':
-    width =0.45
+    width1 =0.45
     grid_size =1000
-    diffractio = Nazcatopolygons()
+    diffractio = Masktopolygon()
     angle =0
     theta = 0
     wavelength = 1.55*um
@@ -18,42 +18,55 @@ if __name__ == '__main__':
     core_index = 3
     filename = 'mask.png'
     polarization = 'TE'
-    ic = diffractio.get_default_ic(width=width)
-    wg_length = 20
-    T= []
-    number_of_gc = 20
-    period = 1
+    ic = diffractio.get_default_ic(width=width1)
 
 
-    with nd.Cell(name='mmi') as _cell:
-        el0 = ic.strt(length=wg_length+1, width=0.45).put(0,0,0)
+    T = []
+    number_of_gc = 25
+    period = 0.2
+    ff = 0.5
+    duty_cycle = ff * period
+    wg_length = period*number_of_gc  + period
+    with nd.Cell(name='grating') as _cell:
+
         for i in range(number_of_gc):
-            el1 = ic.strt(length=0.6, width=0.45).put(0+i*period+1,0.25,0)
+            el1 = ic.strt(length=duty_cycle, width=0.45).put(0+i*period,0.45,0)
+
             #print(i*period)
+        el = ic.strt(length=wg_length , width=0.45).put(0, 0, 0)
+        el.raise_pins(['a0', 'b0'])
 
-        el0.raise_pins(['a0', 'b0'])
 
-    sim = NazcaBPM(
-        cell=_cell,
+
+
+
+
+    sim = VPI_BPM(
         grid_size=grid_size,
         beam_waist=1,
-        thickness=0.22,
         core_index=core_index,
-        clad_index=clad_index,
         substrate_index=clad_index,
-        left_side_index=clad_index,
-        right_side_index=clad_index,
-        wavelength=wavelength,
-        polarization=polarization,
-        mode=0,
-        filename='mask.png',
+        image=None,
+        wavelength=1.55,
+        thickness=0.25,
+        polarization='TE',
+        filename='./mask.png',
+        cell=_cell,
         pin='b0',
-        plotting=False,
-        sim_mode = 'WPM'
+        mode=0,
+        plotting=True,
+        sim_mode='BPM',
+        angle=0
     )
 
     sim.plot_mask()
     #write a function for transversal profile for taking the mode
 
-    sim.run_bpm_mode()
-    sim.visualize()
+    sim.run_bpm_mode(output_monitor_location= wg_length, input_monitor_location = 0)
+    sim.visualize(monitor_location = wg_length)
+
+
+
+
+
+

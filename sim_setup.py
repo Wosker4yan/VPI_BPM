@@ -23,7 +23,6 @@ import math
 import sys, os
 
 
-
 def norm(field, x):
     """Normalization of a field.
     Normalizing the field
@@ -35,9 +34,6 @@ def norm(field, x):
     """
 
     return np.sqrt((sum(field * np.conjugate(field)))) * (x[1] - x[0])
-
-
-
 
 
 def nearest(vector, number):
@@ -158,7 +154,6 @@ class VPI_BPM:
         self.sim_mode = sim_mode
         self.angle = angle
 
-
     def __str__(self):
         message = f'Grid size: {self.grid_size}\n' \
                   f'Beam waist: {self.beam_waist}\n' \
@@ -174,8 +169,6 @@ class VPI_BPM:
                   f'Simulation is set to is set to : {self.sim_mode}\n'
 
         return message
-
-
 
     def get_ic_width(
             self,
@@ -204,8 +197,8 @@ class VPI_BPM:
             cell=None,
             filename=None,
             grid_size=None,
-            save = True,
-            offset=3
+            save=True,
+            offset=1.5
     ):
         """Converting the image to cell. Saves the image on the current directory.
         Args:
@@ -227,19 +220,29 @@ class VPI_BPM:
 
         diffractio = Masktopolygon()
         polygons = diffractio.get_polygons(cell)
-        polygons = polygons['1/0/None']
+        lists = polygons['1/0/None']
 
-        for item in polygons:
+
+        for item in lists:
             xs, ys = zip(*item)
             plt.fill(xs, ys, 'k')
 
-        x, y = max(max(polygons))
+        x, y = max(max(lists))
 
-        grid_offset_z = x
-        grid_offset_x = y + offset
+        max_x = max(max(sublist, key=lambda x: x[0]) for sublist in lists)
+        max_y = max(max(sublist, key=lambda x: x[1]) for sublist in lists)
 
-        plt.ylim(-grid_offset_x, grid_offset_x)
-        plt.xlim(0, grid_offset_z)
+        grid_max_z = max(max_x)
+        grid_max_x = y + offset
+
+        min_x = min(min(sublist, key=lambda x: x[0]) for sublist in lists)
+        min_y = min(min(sublist, key=lambda x: x[1]) for sublist in lists)
+
+        grid_min_z = min_x
+        grid_min_x = min_y
+
+        plt.ylim(-grid_max_x, grid_max_x)
+        plt.xlim(0, grid_max_z)
         plt.gca().invert_yaxis()
         plt.axis('off')
         if save:
@@ -254,8 +257,7 @@ class VPI_BPM:
 
         plt.close()
 
-        return grid_offset_x, grid_offset_z
-
+        return grid_max_x, grid_max_z
 
     def get_slab_index(self,
                        thickness=None,
@@ -265,7 +267,6 @@ class VPI_BPM:
                        number_of_modes=0
                        ):
         """Calculating the slab index with Marco's multilayer code for mode profile calculations.
-
         Args:
             thickness (float) : thickness of the input waveguide
             core_index (float): refractive index of the core ,
@@ -273,7 +274,6 @@ class VPI_BPM:
             polarization (string): polarization of light (TE, TM),
             number_of_modes (int): order of the fundamental mode,
             slab index (float): refractive index of the slab profile
-
         Returns (float):
             slab_index for later use in BPM simulation
         """
@@ -350,11 +350,9 @@ class VPI_BPM:
             cell=cell,
             grid_size=grid_size,
             filename=filename,
-            save = False
+            save=False
         )
-        
-        
-        
+
         slab_index = self.get_slab_index()
 
         sub_mat = Dielectric(substrate_index, color='cyan')
@@ -427,10 +425,10 @@ class VPI_BPM:
                      substrate_index=None,
                      wavelength=None,
                      sim_mode=None,
-                     plotting=True,
+                     plotting=None,
                      input_monitor_location=1.0,
                      output_monitor_location=10.0,
-                     log_scale = False,
+                     log_scale=False,
                      angle=0,
                      x_location=0,
                      input_pin='a0',
@@ -473,6 +471,7 @@ class VPI_BPM:
             wavelength = self.wavelength
         if plotting is None:
             plotting = self.plotting
+
         if sim_mode is None:
             sim_mode = self.sim_mode
 
@@ -487,11 +486,10 @@ class VPI_BPM:
 
         plt.close()
 
-        E, neff, x = self.mode_and_neff(mode_order=0,input_pin=input_pin)
+        E, neff, x = self.mode_and_neff(mode_order=0, input_pin=input_pin)
 
         ref_background = substrate_index
         E_norm = normalize(E)
-
 
         x0 = np.linspace(-grid_offset_x, grid_offset_x, grid_size)  # minus plus !!!
         z0 = np.linspace(0, grid_offset_z, grid_size)
@@ -499,7 +497,6 @@ class VPI_BPM:
         u0 = Scalar_source_X(x=x0, wavelength=wavelength)
 
         u0.user_defined_mode(x0, E_norm, angle, neff, x_location)
-
 
         t0 = Scalar_mask_XZ(x=x0, z=z0, wavelength=wavelength)
 
@@ -534,10 +531,9 @@ class VPI_BPM:
             y_mid = 0.5
 
             cbar = plt.colorbar()
-            #plt.clim(0, 1)
+            # plt.clim(0, 1)
 
             cbar.set_label('Normalized Intensity', rotation=270, size=10, labelpad=10)
-
 
             plt.axvline(0,
                         ymin=y_mid - beam_waist_vline,
@@ -567,27 +563,25 @@ class VPI_BPM:
             plt.tight_layout()
             plt.show()
 
-
         amp_prof_input = t0.profile_transversal(kind='intensity',
-                                          z0=input_monitor_location,
-                                          logarithm=False,
-                                          draw=False,
-                                          filename='')
+                                                z0=input_monitor_location,
+                                                logarithm=False,
+                                                draw=False,
+                                                filename='')
 
         amp_prof_output = t0.profile_transversal(kind='intensity',
-                                          z0=output_monitor_location,
-                                          logarithm=False,
-                                          draw=False,
-                                          filename='')
-
+                                                 z0=output_monitor_location,
+                                                 logarithm=False,
+                                                 draw=False,
+                                                 filename='')
 
         E, neff, x = self.mode_and_neff(
             mode_order=0,
             input_pin=output_pin
         )
 
-        #TODO
-        #CHECK OVERLAP INTEGRALS
+        # TODO
+        # CHECK OVERLAP INTEGRALS
 
         norm_amp_input = norm(amp_prof_input, x0)
         norm_E = norm(E, x0)
@@ -600,10 +594,7 @@ class VPI_BPM:
         sab = overlap2 / overlap1
         transmission = abs(sab)
 
-
-        return amp_prof_input,  amp_prof_output,  x0, transmission,E
-
-
+        return amp_prof_input, amp_prof_output, x0, transmission, E
     def visualize(self,
                   plotting=None,
                   cell=None,
@@ -612,7 +603,7 @@ class VPI_BPM:
                   substrate_index=None,
                   wavelength=None,
                   sim_mode=None,
-                  input_pin =None,
+                  input_pin=None,
                   monitor_location=0.0,
                   angle=0,
                   x_location=0
@@ -672,9 +663,9 @@ class VPI_BPM:
         x0 = np.linspace(-grid_offset_x, grid_offset_x, grid_size)
         z0 = np.linspace(0 * um, grid_offset_z, grid_size)
 
-        u0 = Scalar_source_X(x=x0, wavelength=wavelength*um)
+        u0 = Scalar_source_X(x=x0, wavelength=wavelength * um)
         u0.user_defined_mode(x0, E, angle, neff, x_location)
-        t0 = Scalar_mask_XZ(x=x0, z=z0, wavelength=wavelength*um)
+        t0 = Scalar_mask_XZ(x=x0, z=z0, wavelength=wavelength * um)
 
         t0.image(filename=filename,
                  n_max=neff,
@@ -723,14 +714,7 @@ class VPI_BPM:
             plt.tight_layout()
             plt.show()
 
-        #return amp_prof, index_profile
-
-
-
-
-
-
-
+        # return amp_prof, index_profile
 
     def index_contour_plot(self,
                            cell=None,
@@ -741,14 +725,12 @@ class VPI_BPM:
                            ):
 
         """Function to plot refractive index contour profile
-
         Args:
              cell (netlist.Cell): structure generated with nazca
              grid_size (int): number of points for running the BPM simulation
              filename (string): name of the image saved in the same directory that the code is run
              substrate_index: refractive index of the cladding/substrate
              wavelength (float): wavelength of the light
-
         Returns (float):
             Refractive index contour plot
         """
@@ -791,4 +773,3 @@ class VPI_BPM:
         plt.colorbar(label="Refractive Index", orientation="vertical")
         plt.tight_layout()
         plt.show()
-
