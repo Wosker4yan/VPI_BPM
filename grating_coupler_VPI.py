@@ -1,5 +1,5 @@
-from sim_setup import NazcaBPM
-from nazcatopolygon import Nazcatopolygons
+from sim_setup import VPI_BPM
+from masktopolygon import Masktopolygon
 import nazca as nd
 import numpy as np
 from diffractio import um
